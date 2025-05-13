@@ -31,6 +31,29 @@ exports.createReservation = async (req, res, next) => {
   }
 };
 
+// GET all reservations
+exports.getAllReservations = async (req, res, next) => {
+  try {
+    const reservations = await Reservation.find()
+    .populate('spaceId')
+    .populate({
+      path: 'spaceId',
+      select: 'title description location price capacity images',
+      model: 'Space'
+    })
+    .populate({
+      path: 'userId',
+      select: 'fullName email',
+      model: 'User'
+    })
+    .lean() // Convert to plain JS object for better performance
+    .exec();
+    res.status(200).json(reservations);
+  } catch (err) {
+    next(err);
+  }
+};
+
 // GET user reservations
 exports.getMyReservations = async (req, res, next) => {
   try {
@@ -50,6 +73,19 @@ exports.deleteReservation = async (req, res, next) => {
     });
     if (!deleted) throw createError(404, 'Réservation non trouvée');
     res.status(200).json({ message: 'Réservation annulée' });
+  } catch (err) {
+    next(err);
+  }
+};
+
+// GET reserved date ranges for a space
+exports.getReservedDatesBySpace = async (req, res, next) => {
+  try {
+    const { spaceId } = req.params;
+
+    const reservations = await Reservation.find({ spaceId }).select('startDate endDate -_id');
+
+    res.status(200).json(reservations);
   } catch (err) {
     next(err);
   }
